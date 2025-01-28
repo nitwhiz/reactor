@@ -5,6 +5,7 @@ import (
 	"github.com/nitwhiz/reactor/pkg/sim"
 	"golang.org/x/image/colornames"
 	"log"
+	"math/rand/v2"
 )
 
 type Reactor struct {
@@ -39,32 +40,25 @@ func main() {
 		x := i % 15
 		y := i / 15
 
-		u := sim.NewUranium()
-
-		u.Location().X = float32(x)*25.0 + 150.0
-		u.Location().Y = float32(y)*25.0 + 100.0
-
-		reactor.env.Add(u)
-	}
-
-	for i := range 10 {
 		w := sim.NewWater()
 
-		w.Location().X = 60
-		w.Location().Y = 25.0*float32(i) + 40.0
+		w.Location().X = float32(x)*25.0 + 150.0
+		w.Location().Y = float32(y)*25.0 + 100.0
 
 		reactor.env.Add(w)
 	}
 
-	e := sim.NewElectron()
+	for range 20 {
+		e := sim.NewElectron()
 
-	e.Location().X = 40.0
-	e.Location().Y = 40.0
+		e.Location().X = 40.0
+		e.Location().Y = 250.0
 
-	e.Velocity.X = 60.0
-	e.Velocity.Y = 60.0
+		e.Velocity.X = 100.0
+		e.Velocity.Y = 50.0 * (rand.Float32() - .5)
 
-	reactor.env.Add(e)
+		reactor.env.Add(e)
+	}
 
 	if err := ebiten.RunGame(&reactor); err != nil {
 		log.Fatal(err)

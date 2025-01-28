@@ -44,7 +44,7 @@ func reactElectron(e *Env, self, o Object) {
 	} else if o.Type() == TypeWater {
 		switch w := o.(type) {
 		case *Body:
-			w.Temperature += 100.0
+			w.Temperature += 10.0
 		}
 	}
 }

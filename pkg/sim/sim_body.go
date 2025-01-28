@@ -35,7 +35,7 @@ func NewBody() *Body {
 		velocity:    &Velocity{},
 		bounds:      &Rectangle{},
 		typ:         TypeNone,
-		Temperature: 0,
+		Temperature: 0.0,
 	}
 }
 
