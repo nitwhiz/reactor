@@ -33,7 +33,15 @@ func main() {
 	ebiten.SetWindowTitle("reactor")
 
 	reactor := Reactor{
-		env: sim.NewEnv(),
+		env: sim.NewEnv(&sim.EnvSettings{
+			RoomTemperature:            20.0,
+			WaterEvaporizeTemperature:  100.0,
+			WaterTemperatureChangeRate: 10.0,
+			WaterNeutronAbsorbRate:     0.0125,
+			NeutronWaterHeating:        2.0,
+
+			UpdateWaterTemperature: true,
+		}),
 	}
 
 	for i := range 200 {
@@ -48,10 +56,10 @@ func main() {
 		reactor.env.Add(w)
 	}
 
-	for range 20 {
-		e := sim.NewElectron()
+	for range 40 {
+		e := sim.NewNeutron()
 
-		e.Location().X = 40.0
+		e.Location().X = 40.0 + 10.0*(rand.Float32()-.5)
 		e.Location().Y = 250.0
 
 		e.Velocity.X = 100.0

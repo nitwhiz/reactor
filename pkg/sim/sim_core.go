@@ -17,8 +17,8 @@ type ReactFunc func(e *Env, self, o Object)
 type Object interface {
 	Id() int64
 	Bounds() Bounder
-	Draw(screen *ebiten.Image)
-	Update(d time.Duration)
+	Draw(e *EnvSettings, screen *ebiten.Image)
+	Update(e *EnvSettings, d time.Duration)
 	Location() *Location
 	Intersects(o Object) bool
 	React(e *Env, o Object)

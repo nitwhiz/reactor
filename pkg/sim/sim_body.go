@@ -5,9 +5,9 @@ import (
 	"time"
 )
 
-type BodyDrawFunc func(b *Body, screen *ebiten.Image)
+type BodyDrawFunc func(e *EnvSettings, b *Body, screen *ebiten.Image)
 
-type BodyUpdateFunc func(b *Body, d time.Duration)
+type BodyUpdateFunc func(e *EnvSettings, b *Body, d time.Duration)
 
 const (
 	TypeWater = iota + 1
@@ -47,15 +47,15 @@ func (b *Body) Bounds() Bounder {
 	return b.bounds
 }
 
-func (b *Body) Draw(screen *ebiten.Image) {
+func (b *Body) Draw(e *EnvSettings, screen *ebiten.Image) {
 	if b.drawFunc != nil {
-		b.drawFunc(b, screen)
+		b.drawFunc(e, b, screen)
 	}
 }
 
-func (b *Body) Update(d time.Duration) {
+func (b *Body) Update(e *EnvSettings, d time.Duration) {
 	if b.updateFunc != nil {
-		b.updateFunc(b, d)
+		b.updateFunc(e, b, d)
 	}
 }
 

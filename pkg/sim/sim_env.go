@@ -8,6 +8,16 @@ import (
 	"time"
 )
 
+type EnvSettings struct {
+	RoomTemperature            float32
+	WaterEvaporizeTemperature  float32
+	WaterTemperatureChangeRate float32
+	WaterNeutronAbsorbRate     float32
+	NeutronWaterHeating        float32
+
+	UpdateWaterTemperature bool
+}
+
 type Env struct {
 	objects     map[int64]Object
 	bg          map[int64]Object
@@ -15,15 +25,18 @@ type Env struct {
 	lastUpdated time.Time
 
 	mu *sync.Mutex
+
+	settings *EnvSettings
 }
 
-func NewEnv() *Env {
+func NewEnv(settings *EnvSettings) *Env {
 	return &Env{
 		objects:     map[int64]Object{},
 		bg:          map[int64]Object{},
 		obj0:        map[int64]Object{},
 		lastUpdated: time.Now(),
 		mu:          &sync.Mutex{},
+		settings:    settings,
 	}
 }
 
@@ -35,7 +48,7 @@ func (e *Env) Update() {
 	e.lastUpdated = time.Now()
 
 	for _, o := range e.objects {
-		o.Update(d)
+		o.Update(e.settings, d)
 	}
 
 	for _, o1 := range e.objects {
@@ -52,11 +65,11 @@ func (e *Env) Draw(screen *ebiten.Image) {
 	defer e.mu.Unlock()
 
 	for _, o := range e.bg {
-		o.Draw(screen)
+		o.Draw(e.settings, screen)
 	}
 
 	for _, o := range e.obj0 {
-		o.Draw(screen)
+		o.Draw(e.settings, screen)
 	}
 }
 

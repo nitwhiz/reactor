@@ -27,7 +27,7 @@ func circleIntersectsRectangle(l *Location, c *Circle, oLoc *Location, b *Rectan
 }
 
 type Bounder interface {
-	Intersects(l *Location, o Object) bool
+	Intersects(l *Location, withObject Object) bool
 }
 
 type Circle struct {

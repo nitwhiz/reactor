@@ -7,17 +7,17 @@ import (
 	"time"
 )
 
-type ParticleDrawFunc func(p *Particle, screen *ebiten.Image)
+type ParticleDrawFunc func(e *EnvSettings, p *Particle, screen *ebiten.Image)
 
-type ParticleUpdateFunc func(p *Particle, d time.Duration)
+type ParticleUpdateFunc func(e *EnvSettings, p *Particle, d time.Duration)
 
-var defaultParticleDraw = func(p *Particle, screen *ebiten.Image) {
+var defaultParticleDraw = func(e *EnvSettings, p *Particle, screen *ebiten.Image) {
 	vector.DrawFilledCircle(screen, p.location.X-1, p.location.Y-1, 3, colornames.White, false)
 }
 
 const (
 	TypeNone = iota
-	TypeElectron
+	TypeNeutron
 	TypeUranium
 )
 
@@ -61,20 +61,20 @@ func (p *Particle) Location() *Location {
 	return p.location
 }
 
-func (p *Particle) Update(d time.Duration) {
+func (p *Particle) Update(e *EnvSettings, d time.Duration) {
 	ds := float32(d) / float32(time.Second)
 
 	p.location.X += p.Velocity.X * ds
 	p.location.Y += p.Velocity.Y * ds
 
 	if p.updateFunc != nil {
-		p.updateFunc(p, d)
+		p.updateFunc(e, p, d)
 	}
 }
 
-func (p *Particle) Draw(screen *ebiten.Image) {
+func (p *Particle) Draw(e *EnvSettings, screen *ebiten.Image) {
 	if p.drawFunc != nil {
-		p.drawFunc(p, screen)
+		p.drawFunc(e, p, screen)
 	}
 }
 
