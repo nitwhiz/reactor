@@ -1,7 +1,6 @@
 package sim
 
 import (
-	"github.com/hajimehoshi/ebiten/v2"
 	"sync/atomic"
 	"time"
 )
@@ -14,17 +13,6 @@ func newId() int64 {
 
 type ReactFunc func(e *Env, self, o Object)
 
-type Object interface {
-	Id() int64
-	Bounds() Bounder
-	Draw(e *EnvSettings, screen *ebiten.Image)
-	Update(e *EnvSettings, d time.Duration)
-	Location() *Location
-	Intersects(o Object) bool
-	React(e *Env, o Object)
-	Type() int
-}
-
 type Vec2 struct {
 	X, Y float32
 }
@@ -32,3 +20,5 @@ type Vec2 struct {
 type Location Vec2
 
 type Velocity Vec2
+
+type BodyUpdateFunc func(e *EnvSettings, o Object, d time.Duration)

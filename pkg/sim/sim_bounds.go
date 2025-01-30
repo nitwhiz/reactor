@@ -1,5 +1,11 @@
 package sim
 
+import (
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/vector"
+	"image/color"
+)
+
 func clamp(val, min, max float32) float32 {
 	if val < min {
 		return min
@@ -27,11 +33,16 @@ func circleIntersectsRectangle(l *Location, c *Circle, oLoc *Location, b *Rectan
 }
 
 type Bounder interface {
-	Intersects(l *Location, withObject Object) bool
+	Intersects(l *Location, o Object) bool
+	Draw(o Object, fillColor color.Color, screen *ebiten.Image)
 }
 
 type Circle struct {
 	Radius float32
+}
+
+func (c *Circle) Draw(o Object, fillColor color.Color, screen *ebiten.Image) {
+	vector.DrawFilledCircle(screen, o.Location().X, o.Location().Y, c.Radius, fillColor, false)
 }
 
 func (c *Circle) Intersects(l *Location, o Object) bool {
@@ -55,12 +66,16 @@ type Rectangle struct {
 	Width, Height float32
 }
 
+func (r *Rectangle) Draw(o Object, fillColor color.Color, screen *ebiten.Image) {
+	vector.DrawFilledRect(screen, o.Location().X-r.Width/2.0, o.Location().Y-r.Height/2.0, r.Width, r.Height, fillColor, false)
+}
+
 func (r *Rectangle) Intersects(l *Location, o Object) bool {
 	oLoc := o.Location()
 
 	switch b := o.Bounds().(type) {
 	case *Circle:
-		return circleIntersectsRectangle(oLoc, b, oLoc, r)
+		return circleIntersectsRectangle(oLoc, b, l, r)
 	case *Rectangle:
 		rMinX := l.X - r.Width/2.0
 		rMaxX := l.X + r.Width/2.0

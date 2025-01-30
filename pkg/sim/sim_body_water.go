@@ -2,30 +2,53 @@ package sim
 
 import (
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/vector"
 	"image/color"
 	"math"
 	"time"
 )
 
-func updateWater(e *EnvSettings, b *Body, d time.Duration) {
-	if !e.UpdateWaterTemperature {
+type Water struct {
+	*Body
+	Temperature float32
+}
+
+func NewWater(e *Env) *Water {
+	w := NewBody(e)
+
+	w.bounds = &Rectangle{
+		Width:  20,
+		Height: 20,
+	}
+
+	return &Water{Body: w, Temperature: e.settings.RoomTemperature}
+}
+
+func (w *Water) ZIndex() int {
+	return 10
+}
+
+func (w *Water) Update(d time.Duration) {
+	if !w.env.settings.UpdateWaterTemperature {
 		return
 	}
 
 	ds := float32(d) / float32(time.Second)
 
-	if b.Temperature > e.RoomTemperature {
-		b.Temperature = max(e.RoomTemperature, b.Temperature-e.WaterTemperatureChangeRate*ds)
+	if w.Temperature > w.env.settings.RoomTemperature {
+		w.Temperature = max(w.env.settings.RoomTemperature, w.Temperature-w.env.settings.WaterTemperatureChangeRate*ds)
 	}
 
-	if b.Temperature < e.RoomTemperature {
-		b.Temperature = min(e.RoomTemperature, b.Temperature+e.WaterTemperatureChangeRate*ds)
+	if w.Temperature < w.env.settings.RoomTemperature {
+		w.Temperature = min(w.env.settings.RoomTemperature, w.Temperature+w.env.settings.WaterTemperatureChangeRate*ds)
 	}
 }
 
-func getWaterColor(e *EnvSettings, t float32) color.Color {
-	vapeF := float32(math.Pow(float64(t/e.WaterEvaporizeTemperature), 2))
+func (w *Water) Draw(screen *ebiten.Image) {
+	w.bounds.Draw(w, w.getColor(), screen)
+}
+
+func (w *Water) getColor() color.Color {
+	vapeF := float32(math.Pow(float64(w.Temperature/w.env.settings.WaterVaporizeTemperature), 2))
 
 	if vapeF >= 1.0 {
 		return color.Transparent
@@ -51,24 +74,4 @@ func getWaterColor(e *EnvSettings, t float32) color.Color {
 		B: uint8(float32(b.B) + (float32(r.B)-float32(b.B))*vapeF),
 		A: 255.0,
 	}
-}
-
-func drawWater(e *EnvSettings, b *Body, screen *ebiten.Image) {
-	c := getWaterColor(e, b.Temperature)
-
-	vector.DrawFilledRect(screen, b.location.X-b.bounds.Width/2.0, b.location.Y-b.bounds.Height/2.0, b.bounds.Width, b.bounds.Height, c, false)
-}
-
-func NewWater() *Body {
-	w := NewBody()
-
-	w.bounds = &Rectangle{
-		Width:  20,
-		Height: 20,
-	}
-	w.updateFunc = updateWater
-	w.drawFunc = drawWater
-	w.typ = TypeWater
-
-	return w
 }

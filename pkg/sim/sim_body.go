@@ -2,41 +2,35 @@ package sim
 
 import (
 	"github.com/hajimehoshi/ebiten/v2"
+	"golang.org/x/image/colornames"
+	"image/color"
 	"time"
 )
 
-type BodyDrawFunc func(e *EnvSettings, b *Body, screen *ebiten.Image)
-
-type BodyUpdateFunc func(e *EnvSettings, b *Body, d time.Duration)
-
-const (
-	TypeWater = iota + 1
-)
-
 type Body struct {
-	id          int64
-	drawFunc    BodyDrawFunc
-	updateFunc  BodyUpdateFunc
-	reactFunc   ReactFunc
-	location    *Location
-	velocity    *Velocity
-	bounds      *Rectangle
-	typ         int
-	Temperature float32
+	id       int64
+	location *Location
+	velocity *Velocity
+	bounds   Bounder
+	env      *Env
 }
 
-func NewBody() *Body {
+func NewBody(env *Env) *Body {
 	return &Body{
-		id:          newId(),
-		drawFunc:    nil,
-		updateFunc:  nil,
-		reactFunc:   nil,
-		location:    &Location{},
-		velocity:    &Velocity{},
-		bounds:      &Rectangle{},
-		typ:         TypeNone,
-		Temperature: 0.0,
+		id:       newId(),
+		location: &Location{},
+		velocity: &Velocity{},
+		bounds:   &Rectangle{},
+		env:      env,
 	}
+}
+
+func (b *Body) Color() color.Color {
+	return colornames.Red
+}
+
+func (b *Body) ZIndex() int {
+	return 10
 }
 
 func (b *Body) Id() int64 {
@@ -47,32 +41,28 @@ func (b *Body) Bounds() Bounder {
 	return b.bounds
 }
 
-func (b *Body) Draw(e *EnvSettings, screen *ebiten.Image) {
-	if b.drawFunc != nil {
-		b.drawFunc(e, b, screen)
-	}
+func (b *Body) Draw(screen *ebiten.Image) {
+	b.bounds.Draw(b, colornames.Red, screen)
 }
 
-func (b *Body) Update(e *EnvSettings, d time.Duration) {
-	if b.updateFunc != nil {
-		b.updateFunc(e, b, d)
-	}
+func (b *Body) Update(d time.Duration) {
+	ds := float32(d) / float32(time.Second)
+
+	b.location.X += b.velocity.X * ds
+	b.location.Y += b.velocity.Y * ds
 }
 
 func (b *Body) Location() *Location {
 	return b.location
 }
 
+func (b *Body) Velocity() *Velocity {
+	return b.velocity
+}
+
 func (b *Body) Intersects(o Object) bool {
 	return b.bounds.Intersects(b.location, o)
 }
 
-func (b *Body) React(e *Env, o Object) {
-	if b.reactFunc != nil {
-		b.reactFunc(e, b, o)
-	}
-}
-
-func (b *Body) Type() int {
-	return b.typ
+func (b *Body) React(o Object) {
 }
