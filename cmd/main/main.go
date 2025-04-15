@@ -1,109 +1,47 @@
 package main
 
 import (
-	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/nitwhiz/reactor/internal/ebitendisplay"
 	"github.com/nitwhiz/reactor/pkg/sim"
-	"golang.org/x/image/colornames"
 	"log"
 )
 
-type Reactor struct {
-	env *sim.Env
-}
-
-func (r *Reactor) Update() error {
-	r.env.Update()
-
-	return nil
-}
-
-func (r *Reactor) Draw(screen *ebiten.Image) {
-	screen.Fill(colornames.White)
-
-	r.env.Draw(screen)
-}
-
-func (r *Reactor) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
-	return 1280, 720
-}
-
 func main() {
-	ebiten.SetWindowSize(1280, 720)
-	ebiten.SetWindowTitle("reactor")
+	windowWidth := 1280
+	windowHeight := 720
 
-	reactor := Reactor{
-		env: sim.NewEnv(&sim.EnvSettings{
-			RoomTemperature:            20.0,
-			WaterVaporizeTemperature:   100.0,
-			WaterTemperatureChangeRate: 10.0,
-			WaterNeutronAbsorbRate:     0.0125,
-			NeutronWaterHeating:        2.0,
+	// todo: add control rods
+	// todo: add water consuming electrons with a probability
 
-			UpdateWaterTemperature: true,
-		}),
-	}
+	world := sim.NewEntityManager()
 
-	for y := range 29 {
-		for x := range 54 {
-			w := sim.NewWater(reactor.env)
+	world.AddSystem(sim.NewMovementSystem(world))
+	world.AddSystem(sim.NewHeatTransferSystem(world))
+	world.AddSystem(sim.NewFissionSystem(world))
+	world.AddSystem(sim.NewWorldBorderSystem(world, -100, -100, float32(windowWidth+100), float32(windowHeight+100)))
 
-			wLoc := w.Location()
+	//sim.CreateElectron(world, 15, 500)
+	//sim.CreateElectron(world, 15, 520)
+	//sim.CreateElectron(world, 15, 540)
+	sim.CreateElectron(world, 15, 460, 30, -20)
+	sim.CreateElectron(world, 15, 480, 30, -20)
+	sim.CreateElectron(world, 15, 500, 30, -20)
 
-			wLoc.X = float32(x)*22.0 + 50.0
-			wLoc.Y = float32(y)*22.0 + 50.0
+	//sim.CreateWater(world, 500, 300)
 
-			reactor.env.Add(w)
+	//sim.CreateUranium(world, 200, 350)
+	//sim.CreateUranium(world, 200, 400)
+	//sim.CreateUranium(world, 200, 450)
 
-			u := sim.NewNonUranium(reactor.env)
-
-			uLoc := u.Location()
-
-			uLoc.X = wLoc.X
-			uLoc.Y = wLoc.Y
-
-			reactor.env.Add(u)
+	for x := float32(0); x < 30; x++ {
+		for y := float32(0); y < 20; y++ {
+			sim.CreateUranium(world, 100+x*30, 100+y*30)
 		}
 	}
 
-	//for i := range 200 {
-	//	x := i % 15
-	//	y := i / 15
-	//
-	//	w := sim.NewWater(reactor.env)
-	//
-	//	w.Location().X = float32(x)*25.0 + 150.0
-	//	w.Location().Y = float32(y)*25.0 + 100.0
-	//
-	//	reactor.env.Add(w)
-	//
-	//	u := sim.NewNonUranium(reactor.env)
-	//
-	//	u.Location().X = w.Location().X
-	//	u.Location().Y = w.Location().Y
-	//
-	//	reactor.env.Add(u)
-	//}
-	//
-	//c := sim.NewControlRod(reactor.env)
-	//
-	//c.Location().X = 600
-	//c.Location().Y = 250
-	//
-	//reactor.env.Add(c)
+	r := ebitendisplay.NewReactor(world, windowWidth, windowHeight)
 
-	//for range 40 {
-	//	e := sim.NewNeutron(reactor.env)
-	//
-	//	e.Location().X = 40.0 + 10.0*(rand.Float32()-.5)
-	//	e.Location().Y = 250.0
-	//
-	//	e.Velocity().X = 100.0
-	//	e.Velocity().Y = 50.0 * (rand.Float32() - .5)
-	//
-	//	reactor.env.Add(e)
-	//}
-
-	if err := ebiten.RunGame(&reactor); err != nil {
+	if err := r.Start(); err != nil {
 		log.Fatal(err)
 	}
 }

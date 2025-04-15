@@ -1,15 +1,17 @@
 package sim
 
-import (
-	"math"
-	"math/rand/v2"
-)
+func eachCollision(em *EntityManager, eId EntityID, signature Signature, callback func(eId EntityID, body *BodyComponent) bool) {
+	b := em.GetComponent(ComponentTypeBody, eId).(*BodyComponent)
 
-func randVelocity() *Velocity {
-	a := rand.Float64() * 2.0 * math.Pi
+	em.EachEntity(signature|ComponentTypeBody, func(q *Query, otherEntityId EntityID) bool {
+		otherBody := em.GetComponent(ComponentTypeBody, otherEntityId).(*BodyComponent)
 
-	return &Velocity{
-		float32(60.0 * math.Cos(a)),
-		float32(60.0 * math.Sin(a)),
-	}
+		if eId != otherEntityId && b.Body.Overlaps(otherBody.Body) {
+			if !callback(otherEntityId, b) {
+				return false
+			}
+		}
+
+		return true
+	})
 }
