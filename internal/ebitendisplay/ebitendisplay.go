@@ -1,37 +1,61 @@
 package ebitendisplay
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
+	"github.com/hajimehoshi/ebiten/v2/text/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
+	"github.com/nitwhiz/reactor/pkg/ecs"
 	"github.com/nitwhiz/reactor/pkg/geometry"
 	"github.com/nitwhiz/reactor/pkg/sim"
 	"golang.org/x/image/colornames"
+	"image/color"
 	"log"
 )
 
 type Reactor struct {
-	world *sim.EntityManager
+	world *ecs.EntityManager
 
 	offscreenImage *ebiten.Image
-	drawOp         *ebiten.DrawImageOptions
+	imageDrawOp    *ebiten.DrawImageOptions
+	textDrawOp     *text.DrawOptions
 
-	renderQuery *sim.Query
+	neutronCount int
+
+	textFaceSource *text.GoTextFaceSource
+
+	renderQuery *ecs.Query
 
 	screenWidth  int
 	screenHeight int
 }
 
-func NewReactor(em *sim.EntityManager, screenWidth int, screenHeight int) *Reactor {
-	renderQuery := em.Query(sim.ComponentTypeBody | sim.ComponentTypeParticleType | sim.ComponentTypeZIndex)
+func NewReactor(world *ecs.EntityManager, screenWidth int, screenHeight int) *Reactor {
+	renderQuery := world.Query(sim.ComponentTypeBody | sim.ComponentTypeParticle | sim.ComponentTypeRender)
 	renderQuery.RegisterHook(sim.SortHook)
 
+	ff, err := text.NewGoTextFaceSource(bytes.NewReader(fonts.MPlus1pRegular_ttf))
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	textDrawOp := text.DrawOptions{}
+
+	textDrawOp.GeoM.Translate(float64(screenWidth)/2.0, 60)
+	textDrawOp.LayoutOptions.PrimaryAlign = text.AlignCenter
+	textDrawOp.ColorScale.ScaleWithColor(color.Black)
+
 	return &Reactor{
-		world:          em,
+		world:          world,
 		offscreenImage: ebiten.NewImage(screenWidth, screenHeight),
-		drawOp:         &ebiten.DrawImageOptions{},
+		imageDrawOp:    &ebiten.DrawImageOptions{},
+		textDrawOp:     &textDrawOp,
 		renderQuery:    renderQuery,
+		textFaceSource: ff,
 		screenWidth:    screenWidth,
 		screenHeight:   screenHeight,
 	}
@@ -42,7 +66,7 @@ func (r *Reactor) Render() {
 
 	for _, eId := range r.renderQuery.Ids() {
 		bodyComponent := r.world.GetComponent(sim.ComponentTypeBody, eId).(*sim.BodyComponent)
-		particleTypeComponent := r.world.GetComponent(sim.ComponentTypeParticleType, eId).(*sim.ParticleTypeComponent)
+		particleTypeComponent := r.world.GetComponent(sim.ComponentTypeParticle, eId).(*sim.ParticleComponent)
 
 		body := bodyComponent.Body
 		bodyLoc := body.Location()
@@ -74,20 +98,29 @@ func (r *Reactor) Render() {
 		default:
 			log.Println("unknown body type")
 		}
-
 	}
+
+	text.Draw(
+		r.offscreenImage,
+		fmt.Sprintf("%d", r.neutronCount),
+		&text.GoTextFace{Source: r.textFaceSource, Size: 24},
+		r.textDrawOp,
+	)
 }
 
 func (r *Reactor) Update() error {
 	r.world.Update()
-	r.Render()
+
+	r.neutronCount = r.world.CountComponent(sim.TagThermalNeutron) + r.world.CountComponent(sim.TagFastNeutron)
 
 	return nil
 }
 
 func (r *Reactor) Draw(screen *ebiten.Image) {
-	r.drawOp.GeoM.Reset()
-	screen.DrawImage(r.offscreenImage, r.drawOp)
+	r.Render()
+
+	r.imageDrawOp.GeoM.Reset()
+	screen.DrawImage(r.offscreenImage, r.imageDrawOp)
 
 	ebitenutil.DebugPrint(
 		screen,

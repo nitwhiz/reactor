@@ -1,20 +1,7 @@
-package sim
+package ecs
 
-import (
-	"log"
-	"slices"
-)
+import "log"
 
-var SortHook = func(q *Query) {
-	slices.SortFunc(q.entities.buf, func(a, b EntityID) int {
-		zIndexComponentA := q.m.GetComponent(ComponentTypeZIndex, a).(*ZIndexComponent)
-		zIndexComponentB := q.m.GetComponent(ComponentTypeZIndex, b).(*ZIndexComponent)
-
-		return zIndexComponentA.ZIndex - zIndexComponentB.ZIndex
-	})
-}
-
-// todo: queries could support hooks for sorting and stuff
 type Query struct {
 	m *EntityManager
 
@@ -24,6 +11,10 @@ type Query struct {
 	entities *Buffer[EntityID]
 
 	hooks []func(*Query)
+}
+
+func (q *Query) Sort(cmp func(a, b EntityID) int) {
+	q.entities.Sort(cmp)
 }
 
 func (q *Query) EntityManager() *EntityManager {

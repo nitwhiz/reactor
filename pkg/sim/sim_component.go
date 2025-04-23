@@ -8,20 +8,28 @@ import (
 const (
 	ComponentTypeBody = uint64(1) << uint64(iota)
 	ComponentTypeVelocity
-	ComponentTypeParticleType
-	ComponentTypeHeatTransfer
-	ComponentTypeZIndex
-	ComponentTypeFission
+	ComponentTypeParticle
+	ComponentTypeTemperature
+	ComponentTypeRender
+	TagEmitNeutrons
+	TagFission
+	TagControlRod
+	TagControlRodSet1
+	TagControlRodSet2
+	TagThermalNeutron
+	TagFastNeutron
+	TagWater
+	TagNonFissile
+	TagXenon
+	TagModerator
 )
 
 type BodyComponent struct {
-	BaseComponent
 	Body geometry.Body
 }
 
 func NewBodyComponent(body geometry.Body) *BodyComponent {
 	return &BodyComponent{
-		NewBaseComponent(),
 		body,
 	}
 }
@@ -31,13 +39,11 @@ func (b *BodyComponent) Type() uint64 {
 }
 
 type VelocityComponent struct {
-	BaseComponent
 	velocity geometry.Vec2
 }
 
 func NewVelocityComponent(vx, vy float32) *VelocityComponent {
 	return &VelocityComponent{
-		NewBaseComponent(),
 		geometry.Vec2{
 			X: vx,
 			Y: vy,
@@ -49,43 +55,43 @@ func (v *VelocityComponent) Type() uint64 {
 	return ComponentTypeVelocity
 }
 
-type ParticleTypeComponent struct {
-	BaseComponent
+type ParticleComponent struct {
 	ParticleType *ParticleType
 }
 
-func NewParticleTypeComponent(typ *ParticleType) *ParticleTypeComponent {
-	return &ParticleTypeComponent{
-		NewBaseComponent(),
+func NewParticleTypeComponent(typ *ParticleType) *ParticleComponent {
+	return &ParticleComponent{
 		typ,
 	}
 }
 
-func (p *ParticleTypeComponent) Type() uint64 {
-	return ComponentTypeParticleType
+func (p *ParticleComponent) Type() uint64 {
+	return ComponentTypeParticle
 }
 
-type HeatTransferComponent struct {
-	BaseComponent
-	ParticleType uint64
-	Temperature  float32
-	BaseColor    color.Color
+type TemperatureComponent struct {
+	Temperature float32
+	BaseColor   color.Color
 }
 
-func NewHeatTransferComponent(baseColor color.Color, particleType uint64) *HeatTransferComponent {
-	return &HeatTransferComponent{
-		BaseComponent: NewBaseComponent(),
-		ParticleType:  particleType,
-		Temperature:   20.0,
-		BaseColor:     baseColor,
+func NewTemperatureComponent(baseColor color.Color) *TemperatureComponent {
+	return &TemperatureComponent{
+		Temperature: 20.0,
+		BaseColor:   baseColor,
 	}
 }
 
-func (h *HeatTransferComponent) Type() uint64 {
-	return ComponentTypeHeatTransfer
+func (h *TemperatureComponent) Type() uint64 {
+	return ComponentTypeTemperature
 }
 
-func (h *HeatTransferComponent) CurrentColor() color.Color {
+func (h *TemperatureComponent) CurrentColor() color.Color {
+	// todo: lookup table for this
+
+	if h.Temperature >= 100 {
+		return color.Transparent
+	}
+
 	r, g, b, _ := h.BaseColor.RGBA()
 
 	r8 := float32(r >> 8)
@@ -107,34 +113,16 @@ func (h *HeatTransferComponent) CurrentColor() color.Color {
 	}
 }
 
-type ZIndexComponent struct {
-	BaseComponent
+type RenderComponent struct {
 	ZIndex int
 }
 
-func (z *ZIndexComponent) Type() uint64 {
-	return ComponentTypeZIndex
+func (z *RenderComponent) Type() uint64 {
+	return ComponentTypeRender
 }
 
-func NewZIndexComponent(z int) *ZIndexComponent {
-	return &ZIndexComponent{
-		BaseComponent: NewBaseComponent(),
-		ZIndex:        z,
+func NewRenderComponent(z int) *RenderComponent {
+	return &RenderComponent{
+		ZIndex: z,
 	}
-}
-
-type FissionComponent struct {
-	BaseComponent
-	InducingParticleType uint64
-}
-
-func NewFissionComponent(inducingParticleType uint64) *FissionComponent {
-	return &FissionComponent{
-		BaseComponent:        NewBaseComponent(),
-		InducingParticleType: inducingParticleType,
-	}
-}
-
-func (f *FissionComponent) Type() uint64 {
-	return ComponentTypeFission
 }

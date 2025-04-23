@@ -1,4 +1,6 @@
-package sim
+package ecs
+
+import "slices"
 
 type Buffer[T comparable] struct {
 	buf      []T
@@ -10,6 +12,10 @@ func NewBuffer[T comparable](initialSize int, growSize int) *Buffer[T] {
 		buf:      make([]T, 0, initialSize),
 		growSize: growSize,
 	}
+}
+
+func (r *Buffer[T]) Sort(cmp func(a, b T) int) {
+	slices.SortFunc(r.buf, cmp)
 }
 
 func (r *Buffer[T]) Clear() {

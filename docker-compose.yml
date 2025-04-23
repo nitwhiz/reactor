@@ -1,0 +1,23 @@
+services:
+
+  pprof_cpu:
+
+    build:
+      context: .
+      dockerfile: docker/pprof/Dockerfile
+    volumes:
+      - ./out:/out:ro
+    command: '/out/cpu.prof'
+    ports:
+      - "5555:5555"
+
+  pprof_mem:
+
+    build:
+      context: .
+      dockerfile: docker/pprof/Dockerfile
+    volumes:
+      - ./out:/out:ro
+    command: '/out/heap.prof'
+    ports:
+      - "5555:5555"

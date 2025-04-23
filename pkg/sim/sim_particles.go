@@ -1,24 +1,44 @@
 package sim
 
 import (
+	"github.com/nitwhiz/reactor/pkg/ecs"
 	"github.com/nitwhiz/reactor/pkg/geometry"
-	"golang.org/x/image/colornames"
 	"image/color"
-)
-
-const (
-	ParticleElectron = uint64(iota)
-	ParticleUranium
-	ParticleWater
+	"math"
 )
 
 type ParticleType struct {
-	Type  uint64
 	Color color.Color
 }
 
-var ElectronParticleType = &ParticleType{
-	Type: ParticleElectron,
+var thermalNeutronParticleType = &ParticleType{
+	Color: color.RGBA{
+		R: 90,
+		G: 90,
+		B: 90,
+		A: 255,
+	},
+}
+
+var uraniumParticleType = &ParticleType{
+	Color: color.RGBA{
+		R: 37,
+		G: 139,
+		B: 254,
+		A: 255,
+	},
+}
+
+var nonFissileParticleType = &ParticleType{
+	Color: color.RGBA{
+		R: 190,
+		G: 190,
+		B: 190,
+		A: 255,
+	},
+}
+
+var controlRodParticleType = &ParticleType{
 	Color: color.RGBA{
 		R: 70,
 		G: 70,
@@ -27,50 +47,129 @@ var ElectronParticleType = &ParticleType{
 	},
 }
 
-var UraniumParticleType = &ParticleType{
-	Type:  ParticleUranium,
-	Color: colornames.Blue,
+var xenonParticleType = &ParticleType{
+	Color: color.RGBA{
+		R: 70,
+		G: 70,
+		B: 70,
+		A: 255,
+	},
 }
 
-var NonFissileParticleType = &ParticleType{
-	Type:  ParticleUranium,
-	Color: colornames.Grey,
+var fastNeutronParticleType = &ParticleType{
+	Color: color.RGBA{
+		R: 120,
+		G: 120,
+		B: 120,
+		A: 255,
+	},
 }
 
-func CreateElectron(em *EntityManager, x, y, vx, vy float32) {
+var moderatorParticleType = &ParticleType{
+	Color: color.RGBA{
+		R: 190,
+		G: 190,
+		B: 190,
+		A: 255,
+	},
+}
+
+func CreateThermalNeutron(em *ecs.EntityManager, x, y float32, angle float64) {
+	vx := float32(30.0 * math.Cos(angle))
+	vy := float32(30.0 * math.Sin(angle))
+
 	em.AddEntity(
-		NewParticleTypeComponent(ElectronParticleType),
+		ecs.NewTagComponent(TagThermalNeutron),
+		NewParticleTypeComponent(thermalNeutronParticleType),
 		NewBodyComponent(geometry.NewCircle(x, y, 5)),
-		NewZIndexComponent(100),
+		NewRenderComponent(100),
 		NewVelocityComponent(vx, vy),
 	)
 }
 
-func CreateUranium(em *EntityManager, x, y float32) {
+func CreateUranium(em *ecs.EntityManager, x, y float32) {
 	em.AddEntity(
-		NewParticleTypeComponent(UraniumParticleType),
-		NewBodyComponent(geometry.NewCircle(x, y, 10)),
-		NewFissionComponent(ParticleElectron),
-		NewZIndexComponent(90),
+		ecs.NewTagComponent(TagFission),
+		NewParticleTypeComponent(uraniumParticleType),
+		NewBodyComponent(geometry.NewCircle(x, y, 8)),
+		NewRenderComponent(80),
 	)
 }
 
-func CreateNonFissileElement(em *EntityManager, x, y float32) {
+func CreateNonFissileElement(em *ecs.EntityManager, x, y float32) {
 	em.AddEntity(
-		NewParticleTypeComponent(NonFissileParticleType),
-		NewBodyComponent(geometry.NewCircle(x, y, 10)),
-		NewZIndexComponent(80),
+		NewParticleTypeComponent(nonFissileParticleType),
+		NewBodyComponent(geometry.NewCircle(x, y, 8)),
+		NewRenderComponent(70),
+		ecs.NewTagComponent(TagEmitNeutrons),
+		ecs.NewTagComponent(TagNonFissile),
 	)
 }
 
-func CreateWater(em *EntityManager, x, y float32) {
+func CreateWater(em *ecs.EntityManager, x, y float32) {
 	em.AddEntity(
-		NewParticleTypeComponent(&ParticleType{
-			Type:  ParticleWater,
-			Color: colornames.Lightblue,
+		ecs.NewTagComponent(TagWater),
+		NewParticleTypeComponent(&ParticleType{Color: color.Transparent}),
+		NewTemperatureComponent(color.RGBA{
+			R: 224,
+			G: 237,
+			B: 249,
+			A: 255,
 		}),
-		NewHeatTransferComponent(colornames.Lightblue, ParticleElectron),
-		NewBodyComponent(geometry.NewRectangle(x, y, 500, 500)),
-		NewZIndexComponent(10),
+		NewBodyComponent(geometry.NewRectangle(x, y, 22, 22)),
+		NewRenderComponent(10),
+	)
+}
+
+func CreateMovableControlRod(em *ecs.EntityManager, x, y float32, tag ecs.ComponentType) {
+	em.AddEntity(
+		ecs.NewTagComponent(tag),
+		NewParticleTypeComponent(controlRodParticleType),
+		NewBodyComponent(geometry.NewRectangle(x, y, 6, 480)),
+		NewVelocityComponent(0, 0),
+		NewRenderComponent(90),
+	)
+}
+
+func CreateStaticControlRod(em *ecs.EntityManager, x, y float32, tag ecs.ComponentType) {
+	em.AddEntity(
+		ecs.NewTagComponent(tag),
+		ecs.NewTagComponent(TagControlRod),
+		NewParticleTypeComponent(controlRodParticleType),
+		NewBodyComponent(geometry.NewRectangle(x, y, 6, 480)),
+		NewVelocityComponent(0, 0),
+		NewRenderComponent(90),
+	)
+}
+
+func CreateModerator(em *ecs.EntityManager, x, y float32) {
+	em.AddEntity(
+		ecs.NewTagComponent(TagModerator),
+		NewParticleTypeComponent(moderatorParticleType),
+		NewBodyComponent(geometry.NewRectangle(x, y, 6, 480)),
+		NewVelocityComponent(0, 0),
+		NewRenderComponent(90),
+	)
+}
+
+func CreateXenon(em *ecs.EntityManager, x, y float32) {
+	em.AddEntity(
+		ecs.NewTagComponent(TagXenon),
+		NewParticleTypeComponent(xenonParticleType),
+		NewBodyComponent(geometry.NewCircle(x, y, 8)),
+		NewRenderComponent(60),
+	)
+}
+
+func CreateFastNeutron(em *ecs.EntityManager, x, y float32, angle float64) {
+	vx := float32(60.0 * math.Cos(angle))
+	vy := float32(60.0 * math.Sin(angle))
+
+	em.AddEntity(
+		ecs.NewTagComponent(TagFastNeutron),
+		NewParticleTypeComponent(fastNeutronParticleType),
+		NewBodyComponent(geometry.NewCircle(x, y, 5)),
+		NewVelocityComponent(vx, vy),
+		NewRenderComponent(110),
 	)
 }

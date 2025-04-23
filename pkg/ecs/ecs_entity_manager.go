@@ -1,53 +1,14 @@
-package sim
-
-type EntityID = uint64
-
-type ComponentType = uint64
-
-type Signature = uint64
-
-var lastUid = uint64(0)
-
-func newId() uint64 {
-	lastUid++
-	return lastUid
-}
-
-type Component interface {
-	Type() ComponentType
-}
-
-type BaseComponent struct{}
-
-func NewBaseComponent() BaseComponent {
-	return BaseComponent{}
-}
-
-type System interface {
-	Update()
-}
-
-func getSignature(cs []Component) Signature {
-	res := Signature(0)
-
-	for _, c := range cs {
-		res |= c.Type()
-	}
-
-	return res
-}
-
-type FutureEntity struct {
-	id         EntityID
-	components []Component
-}
+package ecs
 
 type EntityManager struct {
 	signatureToArchetype map[Signature]*Archetype
 	entityArchetype      map[EntityID]*Archetype
-	removeEntities       *Buffer[EntityID]
-	futureEntities       *Buffer[*FutureEntity]
-	runHooks             map[Signature]*Query
+	entityAlive          map[EntityID]bool
+
+	removeEntities *Buffer[EntityID]
+	futureEntities *Buffer[*FutureEntity]
+
+	runHooks map[Signature]*Query
 
 	systems []System
 
@@ -58,9 +19,12 @@ func NewEntityManager() *EntityManager {
 	return &EntityManager{
 		signatureToArchetype: make(map[Signature]*Archetype),
 		entityArchetype:      make(map[EntityID]*Archetype),
-		removeEntities:       NewBuffer[EntityID](128, 32),
-		futureEntities:       NewBuffer[*FutureEntity](128, 32),
-		runHooks:             make(map[Signature]*Query),
+		entityAlive:          make(map[EntityID]bool),
+
+		removeEntities: NewBuffer[EntityID](128, 32),
+		futureEntities: NewBuffer[*FutureEntity](128, 32),
+
+		runHooks: make(map[Signature]*Query),
 
 		systems: []System{},
 
@@ -84,10 +48,40 @@ func (m *EntityManager) EachEntity(signature uint64, callback func(q *Query, eId
 	q := m.Query(signature)
 
 	for _, eId := range q.Ids() {
-		if !callback(q, eId) {
-			return
+		if alive, ok := m.entityAlive[eId]; ok && alive {
+			if !callback(q, eId) {
+				return
+			}
 		}
 	}
+}
+
+func EachComponent[T Component](em *EntityManager, signature Signature, componentType ComponentType, callback func(component T) bool) {
+	for s, a := range em.signatureToArchetype {
+		if s&signature == signature {
+			cs := a.Components[componentType]
+
+			for _, c := range cs.Elements() {
+				if !callback(c.(T)) {
+					return
+				}
+			}
+		}
+	}
+}
+
+func (m *EntityManager) CountComponent(componentType ComponentType) int {
+	res := 0
+
+	for s, a := range m.signatureToArchetype {
+		if s&componentType == componentType {
+			cs := a.Components[componentType]
+
+			res += cs.Size()
+		}
+	}
+
+	return res
 }
 
 func (m *EntityManager) AddSystem(s System) {
@@ -105,11 +99,16 @@ func (m *EntityManager) AddEntity(cs ...Component) {
 
 func (m *EntityManager) RemoveEntity(eId uint64) {
 	m.removeEntities.Add(eId)
+	m.entityAlive[eId] = false
 }
 
 func (m *EntityManager) updateEntities() {
 	for _, eId := range m.removeEntities.Elements() {
-		archetype := m.entityArchetype[eId]
+		archetype, ok := m.entityArchetype[eId]
+
+		if !ok {
+			continue
+		}
 
 		archetype.Remove(eId)
 
@@ -121,6 +120,7 @@ func (m *EntityManager) updateEntities() {
 		}
 
 		delete(m.entityArchetype, eId)
+		delete(m.entityAlive, eId)
 	}
 
 	for _, f := range m.futureEntities.Elements() {
@@ -138,6 +138,8 @@ func (m *EntityManager) updateEntities() {
 		}
 
 		m.entityArchetype[f.id] = archetype
+
+		m.entityAlive[f.id] = true
 	}
 
 	m.removeEntities.Clear()

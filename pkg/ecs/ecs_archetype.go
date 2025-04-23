@@ -1,4 +1,4 @@
-package sim
+package ecs
 
 type Archetype struct {
 	Signature Signature
@@ -23,14 +23,15 @@ func (a *Archetype) Add(eId uint64, cs ...Component) {
 }
 
 func (a *Archetype) Remove(eId EntityID) {
-	eIdx := a.EntityToComponentIndex[eId]
+	cIdx := a.EntityToComponentIndex[eId]
 
 	lastEId := a.Entities.Last()
-	a.EntityToComponentIndex[lastEId] = eIdx
+
+	a.EntityToComponentIndex[lastEId] = cIdx
 
 	for _, cs := range a.Components {
-		// this shifts last to eIdx
-		cs.RemoveIndex(eIdx)
+		// this shifts last to cIdx
+		cs.RemoveIndex(cIdx)
 	}
 
 	a.Entities.Remove(eId)
@@ -41,9 +42,11 @@ func (a *Archetype) Remove(eId EntityID) {
 func (a *Archetype) putComponent(index int, component Component) {
 	cType := component.Type()
 
-	_, ok := a.Components[cType]
+	if _, ok := component.(*TagComponent); ok {
+		component = nil
+	}
 
-	if !ok {
+	if _, ok := a.Components[cType]; !ok {
 		a.Components[cType] = NewBuffer[Component](256, 256)
 	}
 
